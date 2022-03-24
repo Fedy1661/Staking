@@ -61,6 +61,22 @@ describe("Staking Contract", function() {
       const reason = 'You can\'t transfer so tokens from this user';
       await expect(tx).to.be.revertedWith(reason);
     });
+    it("should increase staking", async () => {
+      const customValue = initValue * 2;
+      await stakingToken.transfer(addr1.address, customValue);
+      await rewardToken.transfer(staking.address, initValue);
+      await stakingToken.connect(addr1).approve(staking.address, customValue);
+
+      await staking.connect(addr1).stake(initValue);
+      await staking.connect(addr1).stake(initValue);
+
+      await network.provider.send("evm_increaseTime", [freezeTime]);
+      await network.provider.send("evm_mine");
+
+      await staking.connect(addr1).unstake();
+      const balance = await stakingToken.balanceOf(addr1.address);
+      expect(balance).to.be.equal(customValue);
+    });
     it("should increase reward after each 10 min", async () => {
       await stakingToken.transfer(addr1.address, initValue);
       await rewardToken.transfer(staking.address, initValue);
@@ -131,6 +147,22 @@ describe("Staking Contract", function() {
       const balance = await stakingToken.balanceOf(addr1.address)
       expect(balance).to.be.equal(initValue)
     });
+    it("should save rewards after unstake", async () => {
+      await stakingToken.transfer(addr1.address, initValue);
+      await rewardToken.transfer(staking.address, initValue);
+      await stakingToken.connect(addr1).approve(staking.address, initValue);
+      await staking.connect(addr1).stake(initValue);
+
+      await network.provider.send("evm_increaseTime", [freezeTime]);
+      await network.provider.send("evm_mine");
+
+      await staking.connect(addr1).unstake();
+
+      await staking.connect(addr1).claim();
+      const reward = initValue * percent / 100 * 2;
+      const balance = await rewardToken.balanceOf(addr1.address);
+      expect(balance).to.be.equal(reward);
+    });
   });
 
   describe("Setters", () => {
@@ -194,7 +226,10 @@ describe("Staking Contract", function() {
     expect(balance).to.be.equal(reward);
   });
 
-  it("should be reverted when nothing to withdraw", async () => {
+  /*
+  Посчитал затратным добавлять в функцию еще одну проверку msg.value > 0,
+  помимо msg.value > 0 в ERC20.transfer
+    it("should be reverted when nothing to withdraw", async () => {
     await stakingToken.transfer(addr1.address, initValue);
     await rewardToken.transfer(staking.address, initValue);
     await stakingToken.connect(addr1).approve(staking.address, initValue);
@@ -203,6 +238,7 @@ describe("Staking Contract", function() {
     const tx = staking.connect(addr1).claim();
     await expect(tx).to.be.revertedWith("Nothing to withdraw");
   });
+   */
 
   it("should save time after claim", async () => {
     await stakingToken.transfer(addr1.address, initValue);

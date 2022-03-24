@@ -21,7 +21,7 @@ contract Staking {
         uint256 accumulated;
     }
 
-    mapping(address => User) private _balances;
+    mapping(address => User) private userStruct;
 
     modifier onlyOwner {
         require(msg.sender == owner, 'Only owner');
@@ -39,32 +39,40 @@ contract Staking {
 
     function stake(uint256 amount) public {
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
-        User memory user = _balances[msg.sender];
-        uint256 count = (block.timestamp - user.timestamp) / 600;
-        uint256 _amount = (user.amount * percent / 100) * count;
-        user.accumulated += _amount;
-        user.timestamp = block.timestamp;
-        user.stackedAt = block.timestamp;
-        user.amount += amount;
-        _balances[msg.sender] = user;
+
+        User storage sender = userStruct[msg.sender];
+
+        uint256 rewardQuantity = (block.timestamp - sender.timestamp) / 600;
+
+        sender.accumulated = (sender.amount * percent / 100) * rewardQuantity;
+        sender.timestamp = block.timestamp;
+        sender.stackedAt = block.timestamp;
+        sender.amount = sender.amount + amount;
     }
 
     function claim() public {
-        User memory user = _balances[msg.sender];
-        uint256 count = (block.timestamp - user.timestamp) / 600;
-        uint256 amount = (user.amount * percent / 100) * count + user.accumulated;
-        require(amount > 0, 'Nothing to withdraw');
-        user.timestamp += count * 600;
-        user.accumulated = 0;
-        rewardToken.safeTransfer(msg.sender, amount);
-        _balances[msg.sender] = user;
+        User storage sender = userStruct[msg.sender];
+
+        uint256 rewardQuantity = (block.timestamp - sender.timestamp) / 600;
+        uint256 rewardAmount = (sender.amount * percent / 100) * rewardQuantity;
+
+        rewardToken.safeTransfer(msg.sender, rewardAmount + sender.accumulated);
+
+        delete sender.accumulated;
+        sender.timestamp = sender.timestamp + rewardQuantity * 600;
     }
 
     function unstake() public {
-        User memory sender = _balances[msg.sender];
+        User storage sender = userStruct[msg.sender];
+
         require(block.timestamp - sender.stackedAt >= freezeTime, 'Wait several minutes');
+
         stakingToken.safeTransfer(msg.sender, sender.amount);
-        _balances[msg.sender].amount = 0;
+
+        uint256 rewardQuantity = (block.timestamp - sender.timestamp) / 600;
+        uint256 rewardAmount = (sender.amount * percent / 100) * rewardQuantity;
+        sender.accumulated = sender.accumulated + rewardAmount;
+        delete sender.amount;
     }
 
     function setFreezeTime(uint _freezeTime) public onlyOwner {
