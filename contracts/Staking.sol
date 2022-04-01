@@ -28,6 +28,10 @@ contract Staking {
         _;
     }
 
+    event Stake(address indexed _owner, uint256 _amount);
+    event Unstake(address indexed _owner, uint256 _amount);
+    event Claim(address indexed _owner, uint256 _amount);
+
 
     constructor(address _stakingToken, address _rewardsToken, uint _freezeTime, uint8 _percent){
         owner = msg.sender;
@@ -48,18 +52,22 @@ contract Staking {
         sender.timestamp = block.timestamp;
         sender.stackedAt = block.timestamp;
         sender.amount = sender.amount + amount;
+
+        emit Stake(msg.sender, amount);
     }
 
     function claim() public {
         User storage sender = userStruct[msg.sender];
 
         uint256 rewardQuantity = (block.timestamp - sender.timestamp) / 600;
-        uint256 rewardAmount = (sender.amount * percent / 100) * rewardQuantity;
+        uint256 rewardAmount = (sender.amount * percent / 100) * rewardQuantity + sender.accumulated;
 
-        rewardToken.safeTransfer(msg.sender, rewardAmount + sender.accumulated);
+        rewardToken.safeTransfer(msg.sender, rewardAmount);
 
         delete sender.accumulated;
         sender.timestamp = sender.timestamp + rewardQuantity * 600;
+
+        emit Claim(msg.sender, rewardAmount);
     }
 
     function unstake() public {
@@ -73,6 +81,8 @@ contract Staking {
         uint256 rewardAmount = (sender.amount * percent / 100) * rewardQuantity;
         sender.accumulated = sender.accumulated + rewardAmount;
         delete sender.amount;
+
+        emit Unstake(msg.sender, sender.amount);
     }
 
     function setFreezeTime(uint _freezeTime) public onlyOwner {
