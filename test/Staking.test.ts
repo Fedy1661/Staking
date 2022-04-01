@@ -91,6 +91,16 @@ describe("Staking Contract", function() {
       const balance = await rewardToken.balanceOf(addr1.address);
       expect(balance).to.be.equal(reward);
     });
+    it("should emit event Stake", async () => {
+      const customValue = initValue * 2;
+      await stakingToken.transfer(addr1.address, customValue);
+      await rewardToken.transfer(staking.address, initValue);
+      await stakingToken.connect(addr1).approve(staking.address, customValue);
+
+      const tx = staking.connect(addr1).stake(initValue);
+
+      await expect(tx).to.be.emit(staking, 'Stake');
+    });
   });
 
   describe("unstake", () => {
@@ -162,6 +172,21 @@ describe("Staking Contract", function() {
       const reward = initValue * percent / 100 * 2;
       const balance = await rewardToken.balanceOf(addr1.address);
       expect(balance).to.be.equal(reward);
+    });
+    it("should emit event Unstake", async () => {
+      const customValue = initValue * 2;
+      await stakingToken.transfer(addr1.address, customValue);
+      await rewardToken.transfer(staking.address, initValue);
+      await stakingToken.connect(addr1).approve(staking.address, customValue);
+
+      await staking.connect(addr1).stake(initValue);
+
+      await network.provider.send("evm_increaseTime", [freezeTime]);
+      await network.provider.send("evm_mine");
+
+      const tx = staking.connect(addr1).unstake();
+      await expect(tx).to.be.emit(staking, 'Unstake');
+
     });
   });
 
@@ -258,6 +283,21 @@ describe("Staking Contract", function() {
     const reward = (initValue * percent / 100) * 2;
     const balance = await rewardToken.balanceOf(addr1.address);
     expect(balance).to.be.equal(reward);
+  });
+
+  it("should emit event Claim", async () => {
+    const customValue = initValue * 2;
+    await stakingToken.transfer(addr1.address, customValue);
+    await rewardToken.transfer(staking.address, initValue);
+    await stakingToken.connect(addr1).approve(staking.address, customValue);
+
+    await staking.connect(addr1).stake(initValue);
+
+    await network.provider.send("evm_increaseTime", [600]);
+    await network.provider.send("evm_mine");
+
+    const tx = staking.connect(addr1).claim();
+    await expect(tx).to.be.emit(staking, 'Claim');
   });
 
 
