@@ -28,9 +28,9 @@ contract Staking {
         _;
     }
 
-    event Stake(address indexed _owner, uint256 _amount);
-    event Unstake(address indexed _owner, uint256 _amount);
-    event Claim(address indexed _owner, uint256 _amount);
+    event Stake(address indexed owner, uint256 amount);
+    event Unstake(address indexed owner, uint256 amount);
+    event Claim(address indexed owner, uint256 amount);
 
 
     constructor(address _stakingToken, address _rewardsToken, uint _freezeTime, uint8 _percent){
