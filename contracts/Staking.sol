@@ -21,7 +21,7 @@ contract Staking {
         uint256 accumulated;
     }
 
-    mapping(address => User) private userStruct;
+    mapping(address => User) private _users;
 
     modifier onlyOwner {
         require(msg.sender == owner, 'Only owner');
@@ -44,7 +44,7 @@ contract Staking {
     function stake(uint256 _amount) public {
         stakingToken.safeTransferFrom(msg.sender, address(this), _amount);
 
-        User storage sender = userStruct[msg.sender];
+        User storage sender = _users[msg.sender];
         uint256 senderAmount = sender.amount;
 
         uint256 rewardQuantity = (block.timestamp - sender.timestamp) / 600;
@@ -58,7 +58,7 @@ contract Staking {
     }
 
     function claim() public {
-        User storage sender = userStruct[msg.sender];
+        User storage sender = _users[msg.sender];
         uint256 senderTimestamp = sender.timestamp;
 
         uint256 rewardQuantity = (block.timestamp - senderTimestamp) / 600;
@@ -73,7 +73,7 @@ contract Staking {
     }
 
     function unstake() public {
-        User storage sender = userStruct[msg.sender];
+        User storage sender = _users[msg.sender];
         uint256 senderAmount = sender.amount;
 
         require(block.timestamp - sender.stackedAt >= freezeTime, 'Wait several minutes');
