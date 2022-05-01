@@ -41,48 +41,51 @@ contract Staking {
         percent = _percent;
     }
 
-    function stake(uint256 amount) public {
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+    function stake(uint256 _amount) public {
+        stakingToken.safeTransferFrom(msg.sender, address(this), _amount);
 
         User storage sender = userStruct[msg.sender];
+        uint256 senderAmount = sender.amount;
 
         uint256 rewardQuantity = (block.timestamp - sender.timestamp) / 600;
 
-        sender.accumulated = (sender.amount * percent / 100) * rewardQuantity;
+        sender.accumulated = (senderAmount * percent / 100) * rewardQuantity;
         sender.timestamp = block.timestamp;
         sender.stackedAt = block.timestamp;
-        sender.amount = sender.amount + amount;
+        sender.amount = senderAmount + _amount;
 
-        emit Stake(msg.sender, amount);
+        emit Stake(msg.sender, _amount);
     }
 
     function claim() public {
         User storage sender = userStruct[msg.sender];
+        uint256 senderTimestamp = sender.timestamp;
 
-        uint256 rewardQuantity = (block.timestamp - sender.timestamp) / 600;
+        uint256 rewardQuantity = (block.timestamp - senderTimestamp) / 600;
         uint256 rewardAmount = (sender.amount * percent / 100) * rewardQuantity + sender.accumulated;
 
         rewardToken.safeTransfer(msg.sender, rewardAmount);
 
         delete sender.accumulated;
-        sender.timestamp = sender.timestamp + rewardQuantity * 600;
+        sender.timestamp = senderTimestamp + rewardQuantity * 600;
 
         emit Claim(msg.sender, rewardAmount);
     }
 
     function unstake() public {
         User storage sender = userStruct[msg.sender];
+        uint256 senderAmount = sender.amount;
 
         require(block.timestamp - sender.stackedAt >= freezeTime, 'Wait several minutes');
 
-        stakingToken.safeTransfer(msg.sender, sender.amount);
+        stakingToken.safeTransfer(msg.sender, senderAmount);
 
         uint256 rewardQuantity = (block.timestamp - sender.timestamp) / 600;
-        uint256 rewardAmount = (sender.amount * percent / 100) * rewardQuantity;
+        uint256 rewardAmount = (senderAmount * percent / 100) * rewardQuantity;
         sender.accumulated = sender.accumulated + rewardAmount;
         delete sender.amount;
 
-        emit Unstake(msg.sender, sender.amount);
+        emit Unstake(msg.sender, senderAmount);
     }
 
     function setFreezeTime(uint256 _freezeTime) public onlyOwner {
