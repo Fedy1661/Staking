@@ -6,13 +6,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract Staking {
     using SafeERC20 for IERC20;
-    IERC20 public stakingToken;
-    IERC20 public rewardToken;
+    IERC20 public immutable stakingToken;
+    IERC20 public immutable rewardToken;
 
-    uint public freezeTime;
-    uint8 public percent;
+    uint256 public freezeTime;
+    uint256 public percent;
 
-    address public owner;
+    address public immutable owner;
 
     struct User {
         uint256 amount;
@@ -85,11 +85,11 @@ contract Staking {
         emit Unstake(msg.sender, sender.amount);
     }
 
-    function setFreezeTime(uint _freezeTime) public onlyOwner {
+    function setFreezeTime(uint256 _freezeTime) public onlyOwner {
         freezeTime = _freezeTime;
     }
 
-    function setPercent(uint8 _percent) public onlyOwner {
+    function setPercent(uint256 _percent) public onlyOwner {
         percent = _percent;
     }
 }
